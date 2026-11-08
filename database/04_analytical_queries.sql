@@ -39,7 +39,7 @@ SELECT COUNT(*)                                   AS nb_echeances,
        ROUND(100.0 * COUNT(*) FILTER (WHERE jours_retard > 30)
              / NULLIF(COUNT(jours_retard), 0), 2) AS taux_retard_30j_pct
 FROM v_echeances_detail;
--- we should hve : 45296 , 45288 , 8.90 , 2.87 , 0.36 selon une petite analyse qu'on a faite lors de la creation de l bdd
+
 
 ------------------------------------------------------------------------------
 -- Q2. Retards par source de credit et portefeuille, avec classement (question A)
@@ -61,19 +61,6 @@ FROM aggregated_produits
 WHERE nb_echeances >= 100          -- rgle d'affichage pas de taux sur de petit effectiff
 ORDER BY rang;
 
-------------------------------------------------------------------------------
--- Q3. Retards par zone regionale (question A)
-------------------------------------------------------------------------------
-SELECT region_rating                                       AS zone,
-       COUNT(DISTINCT client_id)                           AS nb_clients,
-       COUNT(jours_retard)                                 AS nb_echeances,
-       ROUND(100.0 * COUNT(*) FILTER (WHERE jours_retard > 0)
-             / NULLIF(COUNT(jours_retard), 0), 2)          AS taux_retard_pct,
-       ROUND(100.0 * COUNT(*) FILTER (WHERE jours_retard > 7)
-             / NULLIF(COUNT(jours_retard), 0), 2)          AS taux_retard_7j_pct
-FROM v_echeances_detail
-GROUP BY region_rating
-ORDER BY region_rating;
 
 ------------------------------------------------------------------------------
 -- Q4. Repartition par tranche de retard, avec part en %
@@ -84,10 +71,10 @@ SELECT tranche_retard,
 FROM v_echeances_detail
 GROUP BY tranche_retard
 ORDER BY tranche_retard;
--- normalement: 8 | 41259 | 2727 | 1139 | 163
+
 
 ------------------------------------------------------------------------------
--- Q10 :( Pivot source × portefeuille × tranche, avec sous-totaux (ROLLUP + GROUPINng)
+-- Q5 :( Pivot source × portefeuille × tranche, avec sous-totaux (ROLLUP + GROUPINng)
 ------------------------------------------------------------------------------
 SELECT CASE WHEN GROUPING(credit_source) = 1 THEN 'TOTAL' ELSE credit_source END AS source_credit,
        CASE WHEN GROUPING(portfolio) = 1 THEN 'Tous portefeuilles'
@@ -104,8 +91,8 @@ ORDER BY GROUPING(credit_source), credit_source, GROUPING(portfolio), portfolio;
 ---avec ça on a repondu sur A
 
 ------------------------------------------------------------------------------
--- Q5a. Distribution du ratio annuiteee / revenu (pour verifier les bandes de Q5b )
----celle ci c juste pour nous pour comprendre Q5b
+-- Q6a. Distribution du ratio annuiteee / revenu (pour verifier les bandes de Q5b )
+---celle cii c juste pour nous pour comprendre Q6b
 ------------------------------------------------------------------------------
 SELECT ROUND(PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY annuity_amount / NULLIF(income_total, 0))::numeric, 3) AS p10,
        ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY annuity_amount / NULLIF(income_total, 0))::numeric, 3) AS p25,
@@ -115,7 +102,7 @@ SELECT ROUND(PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY annuity_amount / NULLI
 FROM clients;
 
 ------------------------------------------------------------------------------
--- Q5b. Taux de difficultee (TARGET) par profil, comparee au taux global (question B)
+-- Q6b. Taux de difficultee (TARGET) par profil, comparee au taux global (question B)
 ------------------------------------------------------------------------------
 WITH base_clients AS (
   SELECT client_id, target, region_rating, income_type, education_type,
@@ -148,10 +135,11 @@ SELECT dimension, segment,
        COUNT(*)                                  AS n_clients,
        SUM(target)                               AS nb_difficulte,
        ROUND(100.0 * AVG(target), 2)             AS taux_difficulte_pct,
-       ROUND(100.0 * (AVG(target) - (SELECT AVG(target) FROM clients)), 2) AS ecart_vs_global_pts
+       ROUND(100.0 * (AVG(target) - (SELECT AVG(target) FROM clients)), 2) AS ecart_vs_global_pts,
+       CASE WHEN SUM(target) < 10 THEN 'indicatif (< 10 evenements)' ELSE 'ok' END AS fiabilite
 FROM segments
 GROUP BY dimension, segment
-HAVING COUNT(*) >= 30                            -- règle d'affichage du scope
+HAVING COUNT(*) >= 30
 ORDER BY dimension, taux_difficulte_pct DESC;
 
 
@@ -175,20 +163,20 @@ SELECT groupe,
        COUNT(*)                         AS n_clients,
        SUM(target)                      AS nb_difficulte,
        ROUND(100.0 * AVG(target), 2)    AS taux_difficulte_pct,
-       ROUND(AVG(target) FILTER (WHERE TRUE)
+       ROUND(AVG(target)
              / NULLIF((SELECT AVG(target) FROM enriched_clients
                        WHERE groupe = 'Pas de retard > 7 j'), 0), 2) AS rapport_vs_reference
 FROM enriched_clients
 GROUP BY groupe
 ORDER BY groupe;
---  Pas de retard 901 | 64 | 7.10 ; setard > 7 j 332 | 38 | 11.45 (rapport ≈ 1.61) ; sans historique 67 | 3
+
 
 
 
 
 ------------------------------------------------------------------------------
--- Q11 repon a D ;; Score d'alerte simple (question D) : donne de 0 a three3
---      +1 retard > 7 j dans l'historique ; +1 ratio annuitee/revenu dans le quart sup ;
+-- Q8 repon a D ;; Score d'alerte simple (question D) : donne de 0 a three3
+--      +1 retard > 7 j dans l'historique ; +1 score externe dans le quart inf ;
 --      +1 score externe dans le quart inf.
 ---------------------------------------------------------------------------
 WITH client_hist AS (
@@ -197,21 +185,17 @@ WITH client_hist AS (
   GROUP BY client_id
 ),
 base AS (
-  SELECT cl.client_id, cl.target, cl.ext_source_2,
-         cl.annuity_amount / NULLIF(cl.income_total, 0) AS ratio,
-         h.max_retard
+  SELECT cl.client_id, cl.target, cl.ext_source_2, h.max_retard
   FROM clients cl
   LEFT JOIN client_hist h ON h.client_id = cl.client_id
 ),
 seuils AS (
-  SELECT PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY ratio)        AS q3_ratio,
-         PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY ext_source_2) AS q1_score
+  SELECT PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY ext_source_2) AS q1_score
   FROM base
 ),
 scored_clients AS (
   SELECT b.client_id, b.target,
          COALESCE((b.max_retard > 7)::int, 0)
-       + COALESCE((b.ratio > s.q3_ratio)::int, 0)
        + COALESCE((b.ext_source_2 < s.q1_score)::int, 0) AS score_alerte
   FROM base b
   CROSS JOIN seuils s
@@ -223,4 +207,3 @@ SELECT score_alerte,
 FROM scored_clients
 GROUP BY score_alerte
 ORDER BY score_alerte;
-
