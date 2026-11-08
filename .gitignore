@@ -1,0 +1,17 @@
+# Environnement Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Donnees volumineuses (interdit sur GitHub > 100 Mo)
+data/raw/
+*.zip
+*.tar.gz
+
+# Fichiers de configuration / OS
+.env
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
