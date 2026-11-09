@@ -119,18 +119,26 @@ screen can be traced to one SQL object.
 ```
 Credit_risk/
 ├── README.md
-├── data/raw/                      ← put the 3 Kaggle CSV files here (not included)
+├── data/
+│   └── raw/                       ← put the 3 Kaggle CSV files here (not included)
+│       ├── application_train.csv
+│       ├── previous_application.csv
+│       └── installments_payments.csv                       : put the 3 Kaggle CSV files here (not included)
 ├── database/
-│   ├── 01_schema.sql              ← creates schema, tables, materialized view
-│   ├── 02_load_data.py            ← loader: CSV → PostgreSQL
+│   ├── 01_schema.sql              : creates schema, tables, materialized view
+│   ├── 02_load_data.py            : loader: CSV → PostgreSQL
 │   ├── 03_checks.sql              ← verifies the load
 │   ├── 04_analytical_queries.sql  ← Q0 view + analytical queries Q1–Q8
-│   ├── 05_dashboard_views.sql     ← one view per query, read by the dashboard
+│   ├── 05_dashboard_views.sql     : one view per query, read by the dashboard
+    ├── 06_views_indexes.sql
 │   └── explore.py, feasibility.py, sampling_check.py,
 │       dedup_check.py, orphans_check.py
-│                                  ← exploration scripts used to design the
+│                                  : exploration scripts used to design the
 │                                    sample and the model (not needed to run)
 ├── docs/
+│   ├── data_origin.md             ← source and Kaggle licensing
+│   ├── performance_notes.md       ← EXPLAIN ANALYZE benchmark and indexing
+│   └── scope.md                   ← project scope and KPI definitions
 ├── dashboard/
 │   ├── app.py                     ← home page (Overview)
 │   ├── db.py                      ← database connection
@@ -138,11 +146,11 @@ Credit_risk/
 │   ├── requirements.txt
 │   └── .env.example
 ├── ai_comparison/
-│   ├── prompt.txt                 ← AI tool, date, exact prompt
+│   ├── prompt.txt                 ← ia tool, date, exact prompt
 │   ├── ai_dashboard.png           ← AI-generated dashboard
 │   └── comparison.md              ← critical comparison
-├── presentation/
-└── screenshots/
+├── presentation/ : the presentation file
+
 ```
 
 All commands below are run from the `Credit_risk` folder unless stated otherwise.
@@ -245,6 +253,8 @@ views starting with `v_dash_`.
 These views store queries, not results: they recompute on every read and never need
 refreshing. Only `echeances` (materialized) needs a refresh, after a reload, and the loader
 already does it.
+
+3. database/06_indexes.sql: creates the validated indexes for performance optimization.
 
 ### 5.10 Run the dashboard
 

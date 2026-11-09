@@ -18,7 +18,7 @@ adjust lending criteria and prioritise follow-up.
 
 1. Which customer segments and regions should be monitored more closely?(with analytical qst A and B)
 2. Which customers should be contacted first (collection priorities)?(with analytical qst C and D)
-3. 3. Which lending criteria (income, annuity-to-income ratio, external score)
+3.  Which lending criteria (income, annuity-to-income ratio, external score)
    should be reviewed?(with analytical qst  B)
    
 
