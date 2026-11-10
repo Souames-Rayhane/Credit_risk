@@ -1,0 +1,29 @@
+Tool: Claude (model Claude Sonnet 5.5), claude.ai
+Date: 8 November 2026
+Mode: single prompt, schema only (no data, no query results); the AI designed the dashboard
+      and rendered it as a PNG image (HTML drawn by the AI, captured with a headless browser).
+      No AI-generated dashboard code is used in our project: only this image.
+Output file: ai_dashboard.png
+
+Honesty note: this run happened in a conversation where our real results had already been
+discussed. Any figure in the image that happens to be close to our data (e.g. the 8.1 %
+"default rate", which is also the publicly known Home Credit average) is not evidence that
+the AI read the data. It had no database access.
+
+----- EXACT PROMPT -----
+
+Create an image of a professional business-intelligence dashboard, desktop width (16:9),
+for a consumer-credit lender. Its purpose: help managers decide which clients and which
+credit products to monitor for repayment difficulties.
+
+The dashboard is built on a PostgreSQL database with these tables:
+- clients: client_id, target (1 = client in payment difficulty), contract_type, income_total,
+  credit_amount, annuity_amount, income_type, education_type, occupation_type, days_employed,
+  ext_source_2 (external credit score between 0 and 1), region_rating (1, 2 or 3)
+- credits: credit_id, client_id, credit_source, contract_type, portfolio, contract_status,
+  amt_credit, term_months
+- paiements (payments): credit_id, instalment_number, due day, payment day, amount due, amount paid
+- echeances: one row per instalment, with the number of days the payment was late
+
+Choose the KPIs and charts you think are most useful for this decision. Give the dashboard
+a title, and make all text in English and legible.
