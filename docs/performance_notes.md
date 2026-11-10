@@ -9,9 +9,9 @@ We evaluate query execution performance on PostgreSQL using `EXPLAIN (ANALYZE, B
 
 | Test | Target Query / Use Case | Before Optimization | After Optimization | Speedup | Plan Change |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **T1** | Client payment history lookup (`paiements`) | **11.66 ms** | **2.16 ms** | **~5.4x** | `Seq Scan` $\rightarrow$ `Bitmap Index Scan` |
-| **T2** | Client delay lookup on Materialised View (`echeances`) | **16.71 ms** | **0.43 ms** | **~38.8x** | `Seq Scan` $\rightarrow$ `Index Only Scan` (Heap Fetches: 0) |
-| **T3a** | Severe delay count (`jours_retard > 30`, ~0.36% rows) | **13.56 ms** | **0.26 ms** | **~52.1x** | `Seq Scan` $\rightarrow$ `Index Only Scan` |
+| **T1** | Client payment history lookup (`paiements`) | **11.66 ms** | **2.16 ms** | **~5.4x** | `Seq Scan` -> `Bitmap Index Scan` |
+| **T2** | Client delay lookup on Materialised View (`echeances`) | **16.71 ms** | **0.43 ms** | **~38.8x** | `Seq Scan` -> `Index Only Scan` (Heap Fetches: 0) |
+| **T3a** | Severe delay count (`jours_retard > 30`, ~0.36% rows) | **13.56 ms** | **0.26 ms** | **~52.1x** | `Seq Scan` -> `Index Only Scan` |
 | **T3b** | Frequent delay count (`jours_retard > -20`, >90% rows) | **19.89 ms** | **13.84 ms** | **~1.4x** | Optimizer relies on `Seq Scan` (Selectivity rule confirmed) |
 | **T4** | Expression rewrite (`jours_retard` vs calculated diff) | **13.56 ms** | **0.26 ms** | **~52.1x** | Enables index usage by querying precalculated column |
 
